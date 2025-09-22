@@ -1,10 +1,11 @@
 local M = {}
+
 local config = {
     max_history_commands = 10,
     delete_hotkey = "<C-d>",
     rename_hotkey = "<C-r>",
     commands_file = vim.fn.stdpath("config") .. "/lum_commands.json",
-	name_separator = " : "
+    name_separator = " : "
 }
 
 -- Загрузка сохраненных команд из файла
@@ -39,21 +40,25 @@ local function get_command_history()
     local commands = {}
     local seen = {}
     
-    -- Получаем всю историю команд
-    local history_count = vim.fn.histnr(":")
-    
-    for i = history_count, math.max(1, history_count - config.max_history_commands), -1 do
-        local cmd = vim.fn.histget(":", i)
-        if cmd and cmd ~= "" and cmd ~= " " then
-            -- Исключаем команды плагина и проверяем уникальность
-            if not cmd:match("^LumQuickCommands") and not seen[cmd] then
-                table.insert(commands, cmd)
-                seen[cmd] = true
-            end
+    local mc = config.max_history_commands
+    for i = 1, mc do
+        local cmd = vim.fn.histget("cmd", i * -1)
+        if cmd and cmd ~= "" and cmd ~= "LumQuickCommandsAdd" and cmd ~= "LumQuickCommandsShow" and not seen[cmd] then
+            table.insert(commands, cmd)
+            seen[cmd] = true
         end
     end
     
     return commands
+end
+
+-- Кастомный sorter который ничего не фильтрует
+local function no_filter_sorter()
+    return require("telescope.sorters").Sorter:new({
+        name = "no_filter",
+        scoring_function = function() return 1 end,
+        highlighter = function() return {} end,
+    })
 end
 
 -- Функция добавления команд
@@ -91,19 +96,37 @@ function M.add_command()
     local pickers = require("telescope.pickers")
     local conf = require("telescope.config").values
     
-    pickers.new({}, {
+    pickers.new({
+        -- Максимально отключаем все фильтры
+        disable_devicons = true,
+		file_ignore_patterns = false,
+        sorting_strategy = "ascending",
+        ignore_filename = false,
+        no_ignore = true,
+        no_ignore_parent = true,
+        hidden = true,
+    }, {
         prompt_title = "Выберите команду для добавления",
         finder = finders.new_table({
             results = available_commands,
+            entry_maker = function(entry)
+                return {
+                    value = entry,
+                    display = entry,
+                    ordinal = entry,
+                    valid = true
+                }
+            end
         }),
-        sorter = conf.generic_sorter({}),
+        -- Используем кастомный sorter без фильтрации
+        sorter = no_filter_sorter(),
         attach_mappings = function(prompt_bufnr, map)
             -- Стандартное действие - добавление команды
             actions.select_default:replace(function()
                 local selection = action_state.get_selected_entry()
                 actions.close(prompt_bufnr)
                 if selection then
-                    local command = selection[1]
+                    local command = selection.value
                     table.insert(saved_commands, command)
                     save_commands(saved_commands)
                     vim.notify("Команда добавлена: " .. command, vim.log.levels.INFO)
@@ -114,7 +137,7 @@ function M.add_command()
             map("i", config.rename_hotkey, function()
                 local selection = action_state.get_selected_entry()
                 if selection then
-                    local command = selection[1]
+                    local command = selection.value
                     vim.ui.input({
                         prompt = "Название для команды: ",
                         default = command
@@ -150,38 +173,57 @@ function M.show_commands()
     local action_state = require("telescope.actions.state")
     local finders = require("telescope.finders")
     local pickers = require("telescope.pickers")
-    local conf = require("telescope.config").values
     
     -- Преобразуем команды в отображаемый формат
     local display_commands = {}
     for _, cmd in ipairs(saved_commands) do
         if type(cmd) == "table" then
-            table.insert(display_commands, cmd.name .. config.name_separator .. cmd.command)
+            table.insert(display_commands, {
+                display = cmd.name .. config.name_separator .. cmd.command,
+                value = cmd.command,
+                name = cmd.name
+            })
         else
-            table.insert(display_commands, cmd)
+            table.insert(display_commands, {
+                display = cmd,
+                value = cmd,
+                name = nil
+            })
         end
     end
     
-    pickers.new({}, {
+    pickers.new({
+        -- Максимально отключаем все фильтры
+        disable_devicons = true,
+        sorting_strategy = "ascending",
+        ignore_filename = false,
+		file_ignore_patterns = false,
+        no_ignore = true,
+        no_ignore_parent = true,
+        hidden = true,
+    }, {
         prompt_title = "Сохраненные команды",
         finder = finders.new_table({
             results = display_commands,
+            entry_maker = function(entry)
+                return {
+                    value = entry.value,
+                    display = entry.display,
+                    ordinal = entry.display,
+                    name = entry.name,
+                    valid = true
+                }
+            end
         }),
-        sorter = conf.generic_sorter({}),
+        -- Используем кастомный sorter без фильтрации
+        sorter = no_filter_sorter(),
         attach_mappings = function(prompt_bufnr, map)
             -- Стандартное действие - выполнение команды
             actions.select_default:replace(function()
                 local selection = action_state.get_selected_entry()
                 actions.close(prompt_bufnr)
                 if selection then
-                    local display_text = selection[1]
-                    local command = display_text
-                    
-                    -- Извлекаем команду если есть название
-                    if display_text:match(config.name_separator) then
-						command = display_text:match(config.name_separator .. "(.+)$")
-                    end
-                    
+                    local command = selection.value
                     vim.cmd(command)
                 end
             end)
@@ -190,13 +232,13 @@ function M.show_commands()
             map("i", config.delete_hotkey, function()
                 local selection = action_state.get_selected_entry()
                 if selection then
-                    local display_text = selection[1]
+                    local command_to_remove = selection.value
                     local index_to_remove = nil
                     
                     -- Находим индекс команды для удаления
                     for i, cmd in ipairs(saved_commands) do
-                        local display_cmd = type(cmd) == "table" and (cmd.name .. config.name_separator .. cmd.command) or cmd
-                        if display_cmd == display_text then
+                        local current_cmd = type(cmd) == "table" and cmd.command or cmd
+                        if current_cmd == command_to_remove then
                             index_to_remove = i
                             break
                         end
