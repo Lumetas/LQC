@@ -50,7 +50,8 @@ require("LQC").setup({
     delete_hotkey = "<C-d>",          -- Хоткей для удаления команды
     rename_hotkey = "<C-r>",          -- Хоткей для сохранения команды с именем
     commands_file = vim.fn.stdpath("config") .. "/lum_commands.json", -- Файл для хранения команд
-    name_separator = " : "            -- Разделитель между названием и командой
+    name_separator = " : ",            -- Разделитель между названием и командой
+	   auto_exec = true                -- Автоматически выполнять команду
 })
 #+END_SRC
 

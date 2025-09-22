@@ -5,7 +5,8 @@ local config = {
     delete_hotkey = "<C-d>",
     rename_hotkey = "<C-r>",
     commands_file = vim.fn.stdpath("config") .. "/lum_commands.json",
-    name_separator = " : "
+    name_separator = " : ",
+	auto_exec = true
 }
 
 -- Загрузка сохраненных команд из файла
@@ -216,7 +217,11 @@ function M.show_commands()
                 actions.close(prompt_bufnr)
                 if selection then
                     local command = selection.value
-                    vim.cmd(command)
+					if config.auto_exec then
+						vim.cmd(command)
+					else 
+						vim.fn.feedkeys(":" .. command, "n")
+					end
                 end
             end)
             
