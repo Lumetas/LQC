@@ -52,15 +52,6 @@ local function get_command_history()
     return commands
 end
 
--- Кастомный sorter который ничего не фильтрует
-local function no_filter_sorter()
-    return require("telescope.sorters").Sorter:new({
-        name = "no_filter",
-        scoring_function = function() return 1 end,
-        highlighter = function() return {} end,
-    })
-end
-
 -- Функция добавления команд
 function M.add_command()
     local commands_history = get_command_history()
@@ -119,7 +110,7 @@ function M.add_command()
             end
         }),
         -- Используем кастомный sorter без фильтрации
-        sorter = no_filter_sorter(),
+        sorter = conf.generic_sorter(opts),
         attach_mappings = function(prompt_bufnr, map)
             -- Стандартное действие - добавление команды
             actions.select_default:replace(function()
@@ -173,6 +164,7 @@ function M.show_commands()
     local action_state = require("telescope.actions.state")
     local finders = require("telescope.finders")
     local pickers = require("telescope.pickers")
+	local conf = require("telescope.config").values
     
     -- Преобразуем команды в отображаемый формат
     local display_commands = {}
@@ -216,7 +208,7 @@ function M.show_commands()
             end
         }),
         -- Используем кастомный sorter без фильтрации
-        sorter = no_filter_sorter(),
+        sorter = conf.generic_sorter({}),
         attach_mappings = function(prompt_bufnr, map)
             -- Стандартное действие - выполнение команды
             actions.select_default:replace(function()
