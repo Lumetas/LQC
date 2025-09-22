@@ -26,16 +26,16 @@
 #+BEGIN_SRC lua
 -- Packer.nvim
 use {
-    'lumetas/lum-quick-commands',
+    'lumetas/LQC',
     requires = { 'nvim-telescope/telescope.nvim' }
 }
 
 -- lazy.nvim
 {
-    "lumetas/lum-quick-commands",
+    "lumetas/LQC",
     dependencies = { "nvim-telescope/telescope.nvim" },
     config = function()
-        require("lum-quick-commands").setup({
+        require("LQC").setup({
             -- конфигурация (опционально)
         })
     end
@@ -45,7 +45,7 @@ use {
 ** Настройка
 
 #+BEGIN_SRC lua
-require("lum-quick-commands").setup({
+require("LQC").setup({
     max_history_commands = 10,        -- Максимальное количество команд в истории
     delete_hotkey = "<C-d>",          -- Хоткей для удаления команды
     rename_hotkey = "<C-r>",          -- Хоткей для сохранения команды с именем
