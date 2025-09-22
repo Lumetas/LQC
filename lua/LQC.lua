@@ -4,6 +4,7 @@ local config = {
     max_history_commands = 10,
     delete_hotkey = "<C-d>",
     rename_hotkey = "<C-r>",
+	exec_with_changes_hotkey = "<C-o>",
     commands_file = vim.fn.stdpath("config") .. "/lum_commands.json",
     name_separator = " : ",
 	auto_exec = true
@@ -251,6 +252,30 @@ function M.show_commands()
                         vim.defer_fn(function()
                             M.show_commands()
                         end, 50)
+                    end
+                end
+            end)
+
+
+
+            map("i", config.exec_with_changes_hotkey, function()
+                local selection = action_state.get_selected_entry()
+                if selection then
+                    local command_to_exec = selection.value
+                    local index_to_exec = nil
+                    
+                    -- Находим индекс команды для удаления
+                    for i, cmd in ipairs(saved_commands) do
+                        local current_cmd = type(cmd) == "table" and cmd.command or cmd
+                        if current_cmd == command_to_exec then
+                            index_to_exec = i
+                            break
+                        end
+                    end
+                    
+                    if index_to_exec then
+                        require("telescope.actions").close(prompt_bufnr)
+						vim.fn.feedkeys(":" .. selection.value, "n")
                     end
                 end
             end)

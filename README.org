@@ -46,12 +46,13 @@ use {
 
 #+BEGIN_SRC lua
 require("LQC").setup({
-    max_history_commands = 10,        -- Максимальное количество команд в истории
-    delete_hotkey = "<C-d>",          -- Хоткей для удаления команды
-    rename_hotkey = "<C-r>",          -- Хоткей для сохранения команды с именем
-    commands_file = vim.fn.stdpath("config") .. "/lum_commands.json", -- Файл для хранения команд
-    name_separator = " : ",            -- Разделитель между названием и командой
-	   auto_exec = true                -- Автоматически выполнять команду
+	max_history_commands = 10,        -- Максимальное количество команд в истории
+	delete_hotkey = "<C-d>",          -- Хоткей для удаления команды
+	rename_hotkey = "<C-r>",          -- Хоткей для сохранения команды с именем
+	commands_file = vim.fn.stdpath("config") .. "/lum_commands.json", -- Файл для хранения команд
+	name_separator = " : ",            -- Разделитель между названием и командой
+	auto_exec = true,                -- Автоматически выполнять команду
+	exec_with_changes_hotkey = "<C-o>" -- Хоткей в меню выбора команды который вставит её в командную строку
 })
 #+END_SRC
 
