@@ -36,20 +36,19 @@ end
 
 -- Получение истории команд (исключая команды плагина)
 local function get_command_history()
-    local history = vim.fn.histget(":", -config.max_history_commands)
     local commands = {}
     local seen = {}
     
-    for i = 1, config.max_history_commands do
-        local cmd = vim.fn.histget(":", -i)
+    -- Получаем всю историю команд
+    local history_count = vim.fn.histnr(":")
+    
+    for i = history_count, math.max(1, history_count - config.max_history_commands), -1 do
+        local cmd = vim.fn.histget(":", i)
         if cmd and cmd ~= "" and cmd ~= " " then
-            -- Исключаем команды плагина
-            if not cmd:match("^LumQuickCommands") then
-                -- Проверка на уникальность
-                if not seen[cmd] then
-                    table.insert(commands, cmd)
-                    seen[cmd] = true
-                end
+            -- Исключаем команды плагина и проверяем уникальность
+            if not cmd:match("^LumQuickCommands") and not seen[cmd] then
+                table.insert(commands, cmd)
+                seen[cmd] = true
             end
         end
     end
